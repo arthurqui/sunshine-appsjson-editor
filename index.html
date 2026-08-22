@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editor de apps.json do Sunshine</title>
+  <link rel="icon" href="https://avatars.fastly.steamstatic.com/49773c1a8767260ef6365b8336064a4ada53399c_full.jpg">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: light-dark(#f7f8fb, #111318);
+      --panel: light-dark(#ffffff, #1a1d24);
+      --text: light-dark(#161922, #f1f3f7);
+      --muted: light-dark(#5d6678, #aeb6c7);
+      --border: light-dark(#d8deea, #343a47);
+      --primary: light-dark(#0b67ff, #73a7ff);
+      --primary-text: light-dark(#ffffff, #07101f);
+      --danger: light-dark(#b42318, #ff8a80);
+      --ok: light-dark(#197a37, #82d59a);
+      --code: light-dark(#edf1f7, #242a35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 32px auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    header {
+      display: grid;
+      gap: 8px;
+    }
+
+    h1, h2 {
+      margin: 0;
+      font-weight: 650;
+      line-height: 1.15;
+    }
+
+    h1 { font-size: clamp(28px, 4vw, 44px); }
+    h2 { font-size: 20px; }
+
+    p { margin: 0; color: var(--muted); }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      font-weight: 600;
+    }
+
+    input, textarea, button {
+      font: inherit;
+    }
+
+    input[type="file"], input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      padding: 10px 12px;
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+
+    button, .download {
+      border: 0;
+      border-radius: 6px;
+      background: var(--primary);
+      color: var(--primary-text);
+      padding: 10px 14px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      font-weight: 650;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button.danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid color-mix(in srgb, var(--danger), transparent 60%);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .status {
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .status.ok { color: var(--ok); }
+    .status.error { color: var(--danger); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 8px;
+      vertical-align: top;
+    }
+
+    th { color: var(--muted); font-weight: 650; }
+    code {
+      background: var(--code);
+      padding: 2px 5px;
+      border-radius: 4px;
+      word-break: break-word;
+    }
+
+    .table-wrap { overflow-x: auto; }
+    .small { font-size: 13px; color: var(--muted); }
+    .hidden { display: none; }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .brand img {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding: 18px 0 8px;
+    }
+    a { color: var(--primary); }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+      main { width: min(100% - 20px, 1120px); margin: 18px auto; }
+      section { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand">
+        <img src="https://avatars.fastly.steamstatic.com/49773c1a8767260ef6365b8336064a4ada53399c_full.jpg" alt="Brasil Drop Keys">
+        <span>Brasil Drop Keys</span>
+      </div>
+      <h1>Editor de apps.json do Sunshine</h1>
+      <p>Carregue seu arquivo atual, adicione atalhos ou entradas manuais, e baixe um novo <code>apps.json</code>.</p>
+    </header>
+
+    <section>
+      <h2>1. Arquivo atual</h2>
+      <p>No Windows, o arquivo costuma ficar em <code>C:\Program Files\Sunshine\config\apps.json</code>. Se o Windows pedir permissão, copie esse arquivo para a Área de Trabalho antes de carregar aqui.</p>
+      <label>
+        apps.json
+        <input id="appsFile" type="file" accept=".json,application/json">
+      </label>
+      <div id="status" class="status">Aguardando arquivo.</div>
+    </section>
+
+    <section>
+      <h2>2. Atalhos</h2>
+      <p>Use atalhos <code>.url</code> que contenham uma linha <code>URL=</code>. Normalmente eles ficam em <code>C:\Users\SeuUsuario\Desktop</code> ou na Área de Trabalho pública em <code>C:\Users\Public\Desktop</code>.</p>
+      <label>
+        Atalhos .url
+        <input id="shortcutFiles" type="file" accept=".url,text/plain" multiple>
+      </label>
+    </section>
+
+    <section>
+      <h2>3. Entrada manual</h2>
+      <p>Use esta parte para atalhos <code>.lnk</code>, links especiais ou qualquer jogo cujo atalho não seja <code>.url</code>. No Sunshine, o campo de saída deve usar o nome do processo visto no Gerenciador de Tarefas.</p>
+      <div class="grid">
+        <label>
+          Nome
+          <input id="manualName" type="text" placeholder="Halo The Master Chief Collection">
+        </label>
+        <label>
+          Processo para fechar
+          <input id="manualProcess" type="text" placeholder="HaloMCCWinStore-Win64-Shipping.exe">
+        </label>
+      </div>
+      <label>
+        Comando ou URL
+        <textarea id="manualCommand" placeholder="cmd.exe /C start &quot;&quot; &quot;msgamelaunch://shortcutLaunch/?ProductId=...&quot;"></textarea>
+      </label>
+      <label>
+        Caminho da imagem ou ícone
+        <input id="manualImage" type="text" placeholder="C:\Games\MeuJogo\icon.ico">
+      </label>
+      <div class="actions">
+        <button id="addManual" type="button" class="secondary">Adicionar manualmente</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. Aplicativos detectados</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Comando</th>
+              <th>Saída</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="appRows"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button id="generate" type="button">Gerar apps.json</button>
+        <a id="download" class="download hidden" download="apps.json">Baixar apps.json</a>
+      </div>
+      <p class="small">Depois de baixar, substitua o arquivo original em <code>C:\Program Files\Sunshine\config\apps.json</code> e reinicie o serviço Sunshine. Faça backup do arquivo original antes de substituir.</p>
+    </section>
+
+    <footer>
+      <span>Ferramenta de apoio para a comunidade Brasil Drop Keys.</span>
+      <span>
+        <a href="https://www.youtube.com/c/BrasilDropKeys" target="_blank" rel="noopener noreferrer">Canal no YouTube</a>
+        ·
+        <a href="https://bdk.eu5.org/" target="_blank" rel="noopener noreferrer">Site Brasil Drop Keys</a>
+      </span>
+    </footer>
+  </main>
+
+  <script>
+    const state = {
+      base: { apps: [], env: {} },
+      additions: []
+    };
+
+    const appsFile = document.getElementById('appsFile');
+    const shortcutFiles = document.getElementById('shortcutFiles');
+    const statusEl = document.getElementById('status');
+    const rowsEl = document.getElementById('appRows');
+    const downloadEl = document.getElementById('download');
+
+    function setStatus(message, type = '') {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+    }
+
+    function normalizeName(fileName) {
+      return fileName
+        .replace(/\.(url|lnk)$/i, '')
+        .replace(/®/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function commandFromUrl(url) {
+      return `cmd.exe /C start "" "${url}"`;
+    }
+
+    function processFromIcon(iconFile) {
+      const match = iconFile.match(/([^\\/:]+\.exe)\s*$/i);
+      return match ? match[1] : '';
+    }
+
+    function parseInternetShortcut(text, fileName) {
+      const lines = text.split(/\r?\n/);
+      const data = {};
+      for (const line of lines) {
+        const index = line.indexOf('=');
+        if (index === -1) continue;
+        data[line.slice(0, index).trim().toLowerCase()] = line.slice(index + 1).trim();
+      }
+
+      if (!data.url) {
+        throw new Error(`${fileName}: não encontrei URL= no atalho.`);
+      }
+
+      const processName = processFromIcon(data.iconfile || '');
+      return {
+        name: normalizeName(fileName),
+        cmd: commandFromUrl(data.url),
+        imagePath: data.iconfile || '',
+        processName
+      };
+    }
+
+    function makeSunshineApp(entry) {
+      const app = {
+        'auto-detach': true,
+        cmd: entry.cmd,
+        elevated: false,
+        'exclude-global-prep-cmd': false,
+        'exit-timeout': 5,
+        'image-path': entry.imagePath || '',
+        name: entry.name,
+        output: '',
+        'wait-all': true
+      };
+
+      if (entry.processName) {
+        app['prep-cmd'] = [
+          {
+            do: '',
+            undo: `cmd.exe /C taskkill /IM ${entry.processName} /T /F`
+          }
+        ];
+      }
+
+      return app;
+    }
+
+    function renderRows() {
+      const all = [...state.base.apps, ...state.additions.map(makeSunshineApp)];
+      rowsEl.innerHTML = '';
+
+      if (!all.length) {
+        rowsEl.innerHTML = '<tr><td colspan="4" class="small">Nenhum aplicativo carregado ainda.</td></tr>';
+        return;
+      }
+
+      for (const app of all) {
+        const tr = document.createElement('tr');
+        const undo = app['prep-cmd']?.[0]?.undo || '';
+        tr.innerHTML = `
+          <td>${escapeHtml(app.name || '')}</td>
+          <td><code>${escapeHtml(app.cmd || '')}</code></td>
+          <td><code>${escapeHtml(undo)}</code></td>
+          <td></td>
+        `;
+
+        const isAddition = state.additions.some(item => item.name === app.name);
+        if (isAddition) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'danger';
+          button.textContent = 'Remover';
+          button.addEventListener('click', () => {
+            state.additions = state.additions.filter(item => item.name !== app.name);
+            renderRows();
+          });
+          tr.lastElementChild.append(button);
+        }
+
+        rowsEl.append(tr);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    appsFile.addEventListener('change', async () => {
+      const file = appsFile.files[0];
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        if (!Array.isArray(parsed.apps)) parsed.apps = [];
+        if (!parsed.env || typeof parsed.env !== 'object') parsed.env = {};
+        state.base = parsed;
+        setStatus(`${parsed.apps.length} aplicativo(s) carregado(s) do apps.json.`, 'ok');
+        renderRows();
+      } catch (error) {
+        setStatus(`Erro ao ler apps.json: ${error.message}`, 'error');
+      }
+    });
+
+    shortcutFiles.addEventListener('change', async () => {
+      const files = [...shortcutFiles.files];
+      let added = 0;
+      const errors = [];
+
+      for (const file of files) {
+        try {
+          const entry = parseInternetShortcut(await file.text(), file.name);
+          state.additions = state.additions.filter(item => item.name !== entry.name);
+          state.additions.push(entry);
+          added += 1;
+        } catch (error) {
+          errors.push(error.message);
+        }
+      }
+
+      if (errors.length) {
+        setStatus(`${added} atalho(s) adicionado(s). ${errors.join(' ')}`, added ? 'ok' : 'error');
+      } else {
+        setStatus(`${added} atalho(s) adicionado(s).`, 'ok');
+      }
+      renderRows();
+    });
+
+    document.getElementById('addManual').addEventListener('click', () => {
+      const name = document.getElementById('manualName').value.trim();
+      const rawCommand = document.getElementById('manualCommand').value.trim();
+      const imagePath = document.getElementById('manualImage').value.trim();
+      const processName = document.getElementById('manualProcess').value.trim();
+
+      if (!name || !rawCommand) {
+        setStatus('Informe pelo menos nome e comando para adicionar manualmente.', 'error');
+        return;
+      }
+
+      const cmd = /^[a-z][a-z0-9+.-]*:\/\//i.test(rawCommand) ? commandFromUrl(rawCommand) : rawCommand;
+      state.additions = state.additions.filter(item => item.name !== name);
+      state.additions.push({ name, cmd, imagePath, processName });
+      setStatus(`Entrada manual adicionada: ${name}.`, 'ok');
+      renderRows();
+    });
+
+    document.getElementById('generate').addEventListener('click', () => {
+      const output = structuredClone(state.base);
+      const additionApps = state.additions.map(makeSunshineApp);
+      const names = new Set(additionApps.map(app => app.name));
+      output.apps = [...output.apps.filter(app => !names.has(app.name)), ...additionApps];
+
+      const blob = new Blob([JSON.stringify(output, null, 2)], { type: 'application/json' });
+      const oldUrl = downloadEl.href;
+      if (oldUrl.startsWith('blob:')) URL.revokeObjectURL(oldUrl);
+      downloadEl.href = URL.createObjectURL(blob);
+      downloadEl.classList.remove('hidden');
+      setStatus(`Arquivo gerado com ${output.apps.length} aplicativo(s).`, 'ok');
+    });
+
+    renderRows();
+  </script>
+</body>
+</html>
