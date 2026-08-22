@@ -201,7 +201,7 @@
         <span>Brasil Drop Keys</span>
       </div>
       <h1>Editor de apps.json do Sunshine</h1>
-      <p>Carregue seu arquivo atual, adicione atalhos ou entradas manuais, e baixe um novo <code>apps.json</code>.</p>
+      <p>Carregue seu arquivo atual, adicione atalhos, executáveis ou entradas manuais, e baixe um novo <code>apps.json</code>.</p>
     </header>
 
     <section>
@@ -224,7 +224,21 @@
     </section>
 
     <section>
-      <h2>3. Entrada manual</h2>
+      <h2>3. Executáveis</h2>
+      <p>Para arquivos <code>.exe</code>, informe a pasta onde eles estão instalados. O navegador só mostra o nome do arquivo, então a ferramenta usa essa pasta para montar o caminho completo.</p>
+      <label>
+        Pasta dos executáveis
+        <input id="exeFolder" type="text" placeholder="D:\MeusJogos\NomeDoJogo">
+      </label>
+      <label>
+        Arquivos .exe
+        <input id="exeFiles" type="file" accept=".exe,application/x-msdownload" multiple>
+      </label>
+      <p class="small">Se selecionar executáveis de pastas diferentes, adicione um grupo por vez e troque o campo da pasta antes de escolher o próximo grupo.</p>
+    </section>
+
+    <section>
+      <h2>4. Entrada manual</h2>
       <p>Use esta parte para atalhos <code>.lnk</code>, links especiais ou qualquer jogo cujo atalho não seja <code>.url</code>. No Sunshine, o campo de saída deve usar o nome do processo visto no Gerenciador de Tarefas.</p>
       <div class="grid">
         <label>
@@ -250,7 +264,7 @@
     </section>
 
     <section>
-      <h2>4. Aplicativos detectados</h2>
+      <h2>5. Aplicativos detectados</h2>
       <div class="table-wrap">
         <table>
           <thead>
@@ -289,6 +303,8 @@
 
     const appsFile = document.getElementById('appsFile');
     const shortcutFiles = document.getElementById('shortcutFiles');
+    const exeFiles = document.getElementById('exeFiles');
+    const exeFolder = document.getElementById('exeFolder');
     const statusEl = document.getElementById('status');
     const rowsEl = document.getElementById('appRows');
     const downloadEl = document.getElementById('download');
@@ -300,7 +316,7 @@
 
     function normalizeName(fileName) {
       return fileName
-        .replace(/\.(url|lnk)$/i, '')
+        .replace(/\.(url|lnk|exe)$/i, '')
         .replace(/®/g, '')
         .replace(/\s+/g, ' ')
         .trim();
@@ -308,6 +324,10 @@
 
     function commandFromUrl(url) {
       return `cmd.exe /C start "" "${url}"`;
+    }
+
+    function commandFromExe(path) {
+      return `cmd.exe /C start "" "${path}"`;
     }
 
     function processFromIcon(iconFile) {
@@ -334,6 +354,24 @@
         cmd: commandFromUrl(data.url),
         imagePath: data.iconfile || '',
         processName
+      };
+    }
+
+    function joinWindowsPath(folder, fileName) {
+      return `${folder.replace(/[\\\/]+$/, '')}\\${fileName}`;
+    }
+
+    function parseExecutable(file, folder) {
+      if (!folder.trim()) {
+        throw new Error('Informe a pasta dos executáveis antes de selecionar arquivos .exe.');
+      }
+
+      const fullPath = joinWindowsPath(folder.trim(), file.name);
+      return {
+        name: normalizeName(file.name),
+        cmd: commandFromExe(fullPath),
+        imagePath: fullPath,
+        processName: file.name
       };
     }
 
@@ -442,6 +480,31 @@
         setStatus(`${added} atalho(s) adicionado(s). ${errors.join(' ')}`, added ? 'ok' : 'error');
       } else {
         setStatus(`${added} atalho(s) adicionado(s).`, 'ok');
+      }
+      renderRows();
+    });
+
+    exeFiles.addEventListener('change', () => {
+      const files = [...exeFiles.files];
+      let added = 0;
+      const errors = [];
+
+      for (const file of files) {
+        try {
+          const entry = parseExecutable(file, exeFolder.value);
+          state.additions = state.additions.filter(item => item.name !== entry.name);
+          state.additions.push(entry);
+          added += 1;
+        } catch (error) {
+          errors.push(error.message);
+          break;
+        }
+      }
+
+      if (errors.length) {
+        setStatus(`${added} executável(is) adicionado(s). ${errors.join(' ')}`, added ? 'ok' : 'error');
+      } else {
+        setStatus(`${added} executável(is) adicionado(s).`, 'ok');
       }
       renderRows();
     });
